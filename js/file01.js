@@ -1,6 +1,7 @@
 'use strict';
 
 import { fetchFakerData } from './functions';
+import { saveVote, getVotes } from './firebase';
 
 /**
  * Añade la clase md:block a el elemento de #toast-interactive.
@@ -87,8 +88,67 @@ const loadData = async () => {
     }
 };
 
+function enableForm() {
+    let form = document.getElementById('form_voting');
+    if (form) {
+        form.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            let product = document.getElementById('select_product');
+            if (product) {
+                const response = await saveVote(product.value);
+                if (response.success) {
+                    await displayVotes();
+                    alert(response.message);
+                } else {
+                    alert(`Error: ${response.message}`);
+                }
+            } else {
+                alert('Por favor, ingresa un ID de producto válido.');
+            }
+            form.reset();
+        });
+    }
+}
+
+function displayVotes() {
+    const votes = getVotes();
+    votes.then(data => {
+        const results = document.getElementById('results');
+        if (!results) return;
+
+        if (!data || Object.keys(data).length === 0) {
+            results.innerHTML = '<p>No hay votos registrados.</p>';
+            return;
+        }
+
+        let table = `<table class="min-w-full border text-sm">
+            <thead>
+                <tr>
+                    <th class="border px-4 py-2">Producto</th>
+                    <th class="border px-4 py-2">Total de votos</th>
+                </tr>
+            </thead>
+            <tbody>
+        `;
+
+        Object.entries(data).forEach(([product, total]) => {
+            table += `
+                <tr>
+                    <td class="border px-4 py-2">${product}</td>
+                    <td class="border px-4 py-2">${total}</td>
+                </tr>
+            `;
+        });
+
+        table += '</tbody></table>';
+        results.innerHTML = table;
+    });
+}
+
 (() => {
     showToast();
     showVideo();
     loadData();
+    enableForm();
+    displayVotes();
 })();
